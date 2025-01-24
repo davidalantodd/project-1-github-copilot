@@ -1,5 +1,7 @@
 # Project 1: Refactoring Legacy Code for Scalability and Maintainability
 
+Link to Source Code: [Pokeverse Solution Optimized with GitHub Copilot](https://github.com/davidalantodd/pokeverse-solution-github-copilot/tree/week-4-github-copilot-refactor)
+
 ## Task 1: Review and Analyze the Legacy Codebase
 
 ### Prompt
@@ -402,3 +404,4 @@ Overall, testing allowed us to confirm functionality of the existing code and te
 
 ## Task 5: Document the Refactored Code
 
+Link to Source Code: [Pokeverse Solution Optimized with GitHub Copilot](https://github.com/davidalantodd/pokeverse-solution-github-copilot/tree/week-4-github-copilot-refactor)
