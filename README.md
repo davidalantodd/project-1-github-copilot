@@ -4,6 +4,8 @@ Link to Source Code: [Pokeverse Solution Optimized with GitHub Copilot](https://
 
 ## Task 1: Review and Analyze the Legacy Codebase
 
+I used Copilot to assist me in identifying opportunities to refactor the codebase.
+
 ### Prompt
 @workspace Identify code blocks, looking for any code that is inefficient. Look for overly complex or redundant code, such as large monolithic functions or repeated logic, and note unclear or poorly documented sections. Also, look out for any performance bottlenecks, or areas that might slow execution, such as inefficient loops or poorly optimized database queries. Give me three examples that meet these criteria and show me the locations of where these code blocks exist, including the file location and line number.
 
@@ -60,7 +62,7 @@ Here are three examples of inefficient or redundant code blocks in your workspac
 These code blocks can be optimized to improve performance and reduce redundancy.
 
 ### Prompt:
-I wanted a few more options so I prompted Copilot with "Can you generate two more inefficiencies?". If gave me two more to choose from:
+I wanted a few more options so I prompted Copilot with "Can you generate two more inefficiencies?". It gave me two more to choose from:
 
 ### Output:
 #### 4. Inefficient State Management in PokemonList Component
@@ -154,13 +156,14 @@ With this information, I plan to tackle these two key issues:
     - Code:
         ```js
         useEffect(() => {
-        setFilteredPokemon(
-            pokemonList.filter((pokemon) =>
-            pokemon.name.toLowerCase().includes(search.toLowerCase())
-            )
-        );
+            setFilteredPokemon(
+                pokemonList.filter((pokemon) =>
+                pokemon.name.toLowerCase().includes(search.toLowerCase())
+                )
+            );
         }, [search, pokemonList]);
         ```
+
 
 I chose not to move forward with "Redundant State Update in FavoritesProvider." We could have optimized the state setters by changing the way we are mutating the favorites array, since we don't need to create new arrays each time. This would have had a slight impact on performance, but to users, it might not be as noticeable since it is estimated to be just milliseconds of improvement. After using Copilot and doing some more research, I feel confident moving forward with the other two refactors.
 
@@ -174,29 +177,30 @@ Other Notes:
 ### 1. Redundant Fetch Call in PokemonCard
 We can optimize the performance of this application by limiting the amount of times the fetch call is made by caching the results, that way if the data has already been fetched once, we can reuse that stored data instead of re-calling fetch.
 
-    ```js
-        function PokemonCard({ url, name }) {
-            const [pokemon, setPokemon] = useState(null);
-            const { favorites, addFavorite, removeFavorite } = useContext(FavoritesContext);
+```js
+    function PokemonCard({ url, name }) {
+        const [pokemon, setPokemon] = useState(null);
+        const { favorites, addFavorite, removeFavorite } = useContext(FavoritesContext);
 
-            useEffect(() => {
-                fetch(url)  // this fetch is called every time the url of the pokemon changes, even if the same pokemon is called multiple times
-                .then((res) => res.json())
-                .then((data) => {
-                    setPokemon(data);
-                })
-                .catch((error) => {
-                    console.error(error);
-                });
-            }, [url]);
+        useEffect(() => {
+            fetch(url)  // this fetch is called every time the url of the pokemon changes, even if the same pokemon is called multiple times
+            .then((res) => res.json())
+            .then((data) => {
+                setPokemon(data);
+            })
+            .catch((error) => {
+                console.error(error);
+            });
+        }, [url]);
 
-            return (
-                <Card>
-                    {/* existing code */}
-                </Card>
-            )
-        }
-    ```
+        return (
+            <Card>
+                {/* existing code */}
+            </Card>
+        )
+    }
+```
+
 #### Prompt: 
 I asked Copilot to generate a solution in more detail by asking "Can you explain this a bit further and talk about how I might implement a fix? 'Redundant Fetch Call in PokemonCard'"
 
@@ -213,35 +217,36 @@ Implementation:
 
 Here is the code suggestion Copilot produced with some comments I added in:
 
-    ```js
+```js
+// existing code
+
+const cache = {};   // implementing cache to store individual pokemon data
+
+function PokemonCard({ url, name }) {
+    const [pokemon, setPokemon] = useState(null);
+    const { favorites, addFavorite, removeFavorite } = useContext(FavoritesContext);
+
+    useEffect(() => {
+        if (cache[url]) {   // checking for cached result
+            setPokemon(cache[url]);
+        } else {    // if it hasn't been cached, fetch the data
+        fetch(url)
+            .then((res) => res.json())
+            .then((data) => {
+            cache[url] = data; // storing result in the cache
+            setPokemon(data);
+            })
+            .catch((error) => {
+            console.error(error);
+            });
+        }
+    }, [url]);
     // existing code
+}
+```
 
-    const cache = {};   // implementing cache to store individual pokemon data
 
-    function PokemonCard({ url, name }) {
-        const [pokemon, setPokemon] = useState(null);
-        const { favorites, addFavorite, removeFavorite } = useContext(FavoritesContext);
-
-        useEffect(() => {
-            if (cache[url]) {   // checking for cached result
-                setPokemon(cache[url]);
-            } else {    // if it hasn't been cached, fetch the data
-            fetch(url)
-                .then((res) => res.json())
-                .then((data) => {
-                cache[url] = data; // storing result in the cache
-                setPokemon(data);
-                })
-                .catch((error) => {
-                console.error(error);
-                });
-            }
-        }, [url]);
-        // existing code
-    }
-    ```
-
-    This approach looked good, so I went ahead with the implementation. Validation and testing in next section.
+This approach looked good, so I went ahead with the implementation. Validation and testing in next section.
 
 
 2. Inefficient Filtering in App Component
@@ -289,54 +294,54 @@ Implementation:
 
 Here is the code suggestion Copilot produced with some comments I added in:
 
-    ```js
-    import React, { useState, useEffect, useCallback } from 'react';
-    import debounce from 'lodash.debounce'; // import debounce library
+```js
+import React, { useState, useEffect, useCallback } from 'react';
+import debounce from 'lodash.debounce'; // import debounce library
 
-    function App() {
-    const [search, setSearch] = useState('');
-    const [filteredPokemon, setFilteredPokemon] = useState([]);
-    const [pokemonList, setPokemonList] = useState([]);
+function App() {
+const [search, setSearch] = useState('');
+const [filteredPokemon, setFilteredPokemon] = useState([]);
+const [pokemonList, setPokemonList] = useState([]);
 
-    // Debounce the search input to limit the rate of state updates
-    const debouncedSetSearch = useCallback(
-        debounce((value) => setSearch(value), 300),
-        []
+// Debounce the search input to limit the rate of state updates
+const debouncedSetSearch = useCallback(
+    debounce((value) => setSearch(value), 300),
+    []
+);
+
+useEffect(() => {
+    setFilteredPokemon(
+    pokemonList.filter((pokemon) =>
+        pokemon.name.toLowerCase().includes(search.toLowerCase())
+    )
     );
+}, [search, pokemonList]);
 
-    useEffect(() => {
-        setFilteredPokemon(
-        pokemonList.filter((pokemon) =>
-            pokemon.name.toLowerCase().includes(search.toLowerCase())
-        )
-        );
-    }, [search, pokemonList]);
+const handleChange = (event) => {
+    debouncedSetSearch(event.target.value); //call the new debouncedSetSearch function
+};
 
-    const handleChange = (event) => {
-        debouncedSetSearch(event.target.value); //call the new debouncedSetSearch function
-    };
+return (
+    <div>
+    <input
+        type="text"
+        value={search}
+        onChange={handleChange} // change this onChange to call the new function
+        placeholder="Search Pokémon"
+    />
+    <div>
+        {filteredPokemon.map((pokemon) => (
+        <div key={pokemon.name}>{pokemon.name}</div>
+        ))}
+    </div>
+    </div>
+);
+}
 
-    return (
-        <div>
-        <input
-            type="text"
-            value={search}
-            onChange={handleChange} // hange this onChange to call the new function
-            placeholder="Search Pokémon"
-        />
-        <div>
-            {filteredPokemon.map((pokemon) => (
-            <div key={pokemon.name}>{pokemon.name}</div>
-            ))}
-        </div>
-        </div>
-    );
-    }
+export default App;
+```
 
-    export default App;
-    ```
-
-    This approach seemed promising, so I went ahead with the implementation. When implementing, this time I used the "Apply in Editor" function next to the generated code to automatically insert into the file. This worked well and I could accept individual code changes. Validation and testing in next section.
+This approach seemed promising, so I went ahead with the implementation. When implementing, this time I used the "Apply in Editor" function next to the generated code to automatically insert into the file. This worked well and I could accept individual code changes. Validation and testing in next section.
 
 Screenshot of accepting Copilot's code changes:
 
@@ -375,7 +380,7 @@ After testing out the initial change via performing actions on the UI, it actual
 
 So, I prompted Copilot again with "I implemented this and now when I type a character, it has to execute before I can type another, is there any way I can type as many characters as I want but it updates in regular intervals?"
 
-It suggested to add another state called "input" that would track the search bar contents, but still only update the search state at regular intervals. This worked a lot better in testing. It was still a little too slow to respond, so I changed the value for updating to be every .2 seconds rather than .3 and that felt more user-responsive, while still limiting the number of times the filter needs to be executed.
+It suggested to add another state called "input" that would track the search bar contents, but still only update the search state at regular intervals. This worked a lot better in testing. It was still a little too slow to respond, so I changed the value for updating to be every .15 seconds rather than .3 and that felt more user-responsive, while still limiting the number of times the filter needs to be executed.
 
 I also adjusted the test to be reflective of the new lag in updating the filtered Pokemon. Here's the new test:
 
@@ -403,5 +408,14 @@ Although the test takes longer, the user experience is improved, and the new app
 Overall, testing allowed us to confirm functionality of the existing code and test some performance optimizations on the refactored code.
 
 ## Task 5: Document the Refactored Code
+
+I was able to refactor the legacy codebase using GitHub Copilot. The following optimizations were made:
+- Implemented a caching mechanism in `PokemonCard.js` to store fetched data and reuse it if available. This code change made a measurable difference in execution time for the unit test I created, reducing time from 160ms to 88ms. This measurable difference would multiply over time the more a user interacted with the application.
+- Debounced the search input in `App.js` to limit the rate at which the search state is updated. This improved user experience in anticipation of scaling. There would be no filtering lag if the list of Pokemon in the database grew to a large amount.
+
+Copilot sped up the time it took to refactor in the following ways:
+- Identifying key issues in the legacy codebase to make spotting potential inefficiencies faster.
+- Suggesting multiple solutions by generating code and unit tests, allowing me as the developer to look deeper into these options and choose one that is vetted and appropriate for the use case
+- Generating comments and documentation for key functionality
 
 Link to Source Code: [Pokeverse Solution Optimized with GitHub Copilot](https://github.com/davidalantodd/pokeverse-solution-github-copilot/tree/week-4-github-copilot-refactor)
